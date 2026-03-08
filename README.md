@@ -34,6 +34,9 @@ Flask 서버에서 웹캠 실시간 분류
 - icrawler (Bing) 로 자동 수집
 - 키워드: `pencil object white background`, `smartphone mobile phone object`
 
+<!-- 크롤링 샘플 이미지 (클래스별 5장) -->
+[이미지]
+
 ---
 
 ### 모델 구조
@@ -72,6 +75,7 @@ MobileNetV2 (ImageNet pretrained)
 
 **최고 검증 정확도: 100%** (Epoch 3부터 수렴)
 
+<!-- 학습 곡선 그래프 (Loss / Accuracy) -->
 [이미지]
 
 ---
