@@ -104,3 +104,9 @@ MobileNetV2 (ImageNet pretrained)
 **최고 검증 정확도: 100%** (Epoch 3부터 수렴)
 
 <img width="1674" height="616" alt="image" src="https://github.com/user-attachments/assets/e03861ea-fead-4a40-9941-01f03698f3a3" />
+
+---
+
+# 3. 자체 모델 구축 예정
+
+
