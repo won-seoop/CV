@@ -1,25 +1,4 @@
-# CV
-
-## 1. 웹캠 실시간 객체 탐지 (SSDLite)
-
-```
-branch: feature/ssdlite
-```
-
-<img width="1820" height="1134" alt="image" src="https://github.com/user-attachments/assets/19b7634d-0b13-49b0-aff2-0e2363a0f359" />
-
-- SSDLite320 + MobileNetV3 (COCO pretrained)
-- 2초 간격으로 객체 탐지, 박스 + 라벨 오버레이
-- Flask 웹 스트리밍 (브라우저에서 `http://localhost:8888`)
-- Docker Compose로 실행
-
----
-
-## 2. MobileNetV2 파인튜닝 — 연필 / 핸드폰 분류
-
-```
-branch: feature/object-detection-finetune
-```
+# MobileNetV2 파인튜닝 — 연필 / 핸드폰 분류
 
 ### 데모
 
