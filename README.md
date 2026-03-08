@@ -2,3 +2,8 @@
 
 ## 1. 웹캠 영상 처리 프로그램
 
+```
+branch : ssdlite
+
+```
+<img width="1820" height="1134" alt="image" src="https://github.com/user-attachments/assets/19b7634d-0b13-49b0-aff2-0e2363a0f359" />
