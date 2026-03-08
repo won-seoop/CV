@@ -4,9 +4,7 @@
 
 | 연필 탐지 | 핸드폰 탐지 |
 |-----------|------------|
-| <img width="300" height="300" alt="image" src="https://github.com/user-attachments/assets/e7b07906-a7b1-4902-ac59-499526ca0e06" />
-  | <img width="300" height="300" alt="image" src="https://github.com/user-attachments/assets/eb3fe887-bcdb-4a62-842e-3fffcbe5b5af" />
-   |
+| <img width="300" height="300" alt="image" src="https://github.com/user-attachments/assets/e7b07906-a7b1-4902-ac59-499526ca0e06" />| <img width="300" height="300" alt="image" src="https://github.com/user-attachments/assets/eb3fe887-bcdb-4a62-842e-3fffcbe5b5af" />|
 
 ---
 
