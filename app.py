@@ -1,46 +1,62 @@
 import io
+import os
+import sys
 import base64
 import torch
-import torchvision.transforms.functional as TF
-from torchvision.models.detection import (
-    ssdlite320_mobilenet_v3_large,
-    SSDLite320_MobileNet_V3_Large_Weights,
-)
+import torch.nn as nn
+from torchvision.models import mobilenet_v2, MobileNet_V2_Weights
+from torchvision import transforms
 from PIL import Image
 from flask import Flask, request, jsonify, render_template_string
 
 app = Flask(__name__)
 
-# --- Model (COCO object detection) ---
+# --- Model load ---
 
-weights = SSDLite320_MobileNet_V3_Large_Weights.COCO_V1
-model   = ssdlite320_mobilenet_v3_large(weights=weights)
-model.eval()
-COCO_LABELS = weights.meta["categories"]
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.pt")
 
-CONFIDENCE_THRESHOLD = 0.5
+def load_model():
+    if not os.path.exists(MODEL_PATH):
+        print(f"[ERROR] model.pt not found at {MODEL_PATH}", file=sys.stderr)
+        sys.exit(1)
+    try:
+        checkpoint = torch.load(MODEL_PATH, map_location="cpu")
+        class_names = checkpoint["class_names"]
+
+        model = mobilenet_v2(weights=MobileNet_V2_Weights.IMAGENET1K_V1)
+        model.classifier = nn.Sequential(
+            nn.Dropout(0.3),
+            nn.Linear(model.last_channel, len(class_names)),
+        )
+        model.load_state_dict(checkpoint["model_state_dict"])
+        model.eval()
+        print(f"[INFO] Model loaded. Classes: {class_names}")
+        return model, class_names
+    except Exception as e:
+        print(f"[ERROR] Failed to load model.pt: {e}", file=sys.stderr)
+        sys.exit(1)
+
+model, CLASS_NAMES = load_model()
+
+# --- Preprocessing (ImageNet standard) ---
+
+preprocess = transforms.Compose([
+    transforms.Resize(256),
+    transforms.CenterCrop(224),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                         std=[0.229, 0.224, 0.225]),
+])
 
 # --- Inference ---
 
-def detect(pil_img):
-    tensor = TF.to_tensor(pil_img.convert("RGB"))   # [3,H,W] 0~1
+def classify(pil_img):
+    tensor = preprocess(pil_img.convert("RGB")).unsqueeze(0)  # [1,3,224,224]
     with torch.no_grad():
-        output = model([tensor])[0]
-
-    keep = output["scores"] > CONFIDENCE_THRESHOLD
-    results = []
-    for box, label, score in zip(
-        output["boxes"][keep],
-        output["labels"][keep],
-        output["scores"][keep],
-    ):
-        x1, y1, x2, y2 = [round(v) for v in box.tolist()]
-        results.append({
-            "box":   [x1, y1, x2, y2],
-            "label": COCO_LABELS[label.item()],
-            "score": round(score.item() * 100, 1),
-        })
-    return results
+        logits = model(tensor)
+        probs  = torch.softmax(logits, dim=1)[0]
+    top_prob, top_idx = probs.max(0)
+    return CLASS_NAMES[top_idx.item()], round(top_prob.item() * 100, 1)
 
 # --- HTML ---
 
@@ -48,7 +64,7 @@ HTML = """
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Object Detection Live</title>
+  <title>Image Classifier</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -57,65 +73,62 @@ HTML = """
       padding: 24px; gap: 16px;
     }
     h1 { font-size: 1.4rem; }
-    #wrap {
-      position: relative;
-      display: inline-block;
-    }
+    #wrap { position: relative; display: inline-block; }
     video {
-      display: block;
-      width: 640px;
-      border-radius: 8px;
-      transform: scaleX(-1); /* 비디오만 좌우반전 */
+      display: block; width: 640px; border-radius: 8px;
+      transform: scaleX(-1);
     }
-    #boxCanvas {
-      position: absolute;
-      top: 0; left: 0;
+    #overlay {
+      position: absolute; top: 16px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.6);
+      color: #00e676;
+      font-size: 1.6rem; font-weight: bold;
+      padding: 8px 20px; border-radius: 8px;
       pointer-events: none;
+      white-space: nowrap;
     }
     #captureCanvas { display: none; }
     #status { font-size: 0.78rem; color: #888; }
   </style>
 </head>
 <body>
-  <h1>SSDLite Object Detection</h1>
+  <h1>Image Classifier — {{ classes }}</h1>
   <div id="wrap">
     <video id="video" autoplay playsinline></video>
-    <canvas id="boxCanvas"></canvas>
+    <div id="overlay">—</div>
   </div>
   <canvas id="captureCanvas"></canvas>
   <p id="status">Starting webcam...</p>
 
   <script>
-    const video         = document.getElementById('video');
-    const boxCanvas     = document.getElementById('boxCanvas');
-    const captureCanvas = document.getElementById('captureCanvas');
-    const boxCtx        = boxCanvas.getContext('2d');
-    const capCtx        = captureCanvas.getContext('2d');
-    const status        = document.getElementById('status');
+    const video   = document.getElementById('video');
+    const capCvs  = document.getElementById('captureCanvas');
+    const capCtx  = capCvs.getContext('2d');
+    const overlay = document.getElementById('overlay');
+    const status  = document.getElementById('status');
 
     navigator.mediaDevices.getUserMedia({ video: true })
       .then(stream => {
         video.srcObject = stream;
         video.onloadedmetadata = () => {
-          const w = video.videoWidth;
-          const h = video.videoHeight;
-          boxCanvas.width     = w; boxCanvas.height     = h;
-          captureCanvas.width = w; captureCanvas.height = h;
+          capCvs.width  = video.videoWidth;
+          capCvs.height = video.videoHeight;
           status.textContent = 'Running...';
-          sendFrame();          // 첫 탐지 즉시 실행
+          sendFrame();
         };
       })
       .catch(err => { status.textContent = 'Webcam error: ' + err.message; });
 
     async function sendFrame() {
-      // 캡처: 좌우반전 적용해서 서버에 전송 (화면과 동일 방향)
+      // 좌우반전 적용해서 서버에 전송 (화면과 동일 방향)
       capCtx.save();
       capCtx.scale(-1, 1);
-      capCtx.translate(-captureCanvas.width, 0);
+      capCtx.translate(-capCvs.width, 0);
       capCtx.drawImage(video, 0, 0);
       capCtx.restore();
 
-      const dataURL = captureCanvas.toDataURL('image/jpeg', 0.8);
+      const dataURL = capCvs.toDataURL('image/jpeg', 0.8);
 
       try {
         const res  = await fetch('/predict', {
@@ -124,40 +137,13 @@ HTML = """
           body: JSON.stringify({ image: dataURL }),
         });
         const data = await res.json();
-        drawBoxes(data.results);
-        status.textContent = `Detected: ${data.results.length} object(s)`;
+        overlay.textContent = `${data.label}  ${data.score}%`;
+        status.textContent  = `Last: ${data.label} (${data.score}%)`;
       } catch(e) {
         status.textContent = 'Error: ' + e.message;
       }
 
-      setTimeout(sendFrame, 2000); // 2초마다 탐지
-    }
-
-    function drawBoxes(results) {
-      boxCtx.clearRect(0, 0, boxCanvas.width, boxCanvas.height);
-      if (!results || !results.length) return;
-
-      results.forEach(det => {
-        const [x1, y1, x2, y2] = det.box;
-        const w = x2 - x1;
-        const h = y2 - y1;
-        const label = `${det.label} ${det.score}%`;
-
-        // 박스
-        boxCtx.strokeStyle = '#00e676';
-        boxCtx.lineWidth   = 2;
-        boxCtx.strokeRect(x1, y1, w, h);
-
-        // 라벨 배경
-        boxCtx.font = 'bold 13px sans-serif';
-        const textW = boxCtx.measureText(label).width;
-        boxCtx.fillStyle = '#00e676';
-        boxCtx.fillRect(x1, y1 - 22, textW + 8, 22);
-
-        // 라벨 텍스트
-        boxCtx.fillStyle = '#000';
-        boxCtx.fillText(label, x1 + 4, y1 - 6);
-      });
+      setTimeout(sendFrame, 2000);
     }
   </script>
 </body>
@@ -168,17 +154,16 @@ HTML = """
 
 @app.route("/")
 def index():
-    return render_template_string(HTML)
+    return render_template_string(HTML, classes=" / ".join(CLASS_NAMES))
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    data    = request.json.get("image", "")
-    _, enc  = data.split(",", 1)
-    img     = Image.open(io.BytesIO(base64.b64decode(enc)))
-    results = detect(img)
-    return jsonify({"results": results})
+    data   = request.json.get("image", "")
+    _, enc = data.split(",", 1)
+    img    = Image.open(io.BytesIO(base64.b64decode(enc)))
+    label, score = classify(img)
+    return jsonify({"label": label, "score": score})
 
 if __name__ == "__main__":
-    print("Loading SSDLite model...")
-    print("Server at http://localhost:5000")
+    print(f"Server at http://localhost:5000")
     app.run(host="0.0.0.0", port=5000, threaded=True)
