@@ -35,7 +35,7 @@ Flask 서버에서 웹캠 실시간 분류
 - 키워드: `pencil object white background`, `smartphone mobile phone object`
 
 <!-- 크롤링 샘플 이미지 (클래스별 5장) -->
-[이미지]
+<img width="1674" height="820" alt="image" src="https://github.com/user-attachments/assets/d688ec44-e582-4a6d-918d-7d6da7313916" />
 
 ---
 
@@ -76,7 +76,7 @@ MobileNetV2 (ImageNet pretrained)
 **최고 검증 정확도: 100%** (Epoch 3부터 수렴)
 
 <!-- 학습 곡선 그래프 (Loss / Accuracy) -->
-[이미지]
+<img width="1674" height="616" alt="image" src="https://github.com/user-attachments/assets/e03861ea-fead-4a40-9941-01f03698f3a3" />
 
 ---
 
