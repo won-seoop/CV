@@ -35,7 +35,7 @@ Flask 서버에서 웹캠 실시간 분류
 - 키워드: `pencil object white background`, `smartphone mobile phone object`
 
 <!-- 크롤링 샘플 이미지 (클래스별 5장) -->
-<img width="1674" height="820" alt="image" src="https://github.com/user-attachments/assets/d688ec44-e582-4a6d-918d-7d6da7313916" />
+<img width="800" height="400" alt="image" src="https://github.com/user-attachments/assets/d688ec44-e582-4a6d-918d-7d6da7313916" />
 
 ---
 
