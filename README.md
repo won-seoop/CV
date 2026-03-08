@@ -2,7 +2,8 @@
 
 ### 실험 필요성
 
-SSDLite의 COCO pretrained 모델은 연필과 핸드폰에 대한 객체 탐지 성능이 좋지 않아, MobileNetV2를 해당 클래스에 맞게 파인튜닝하여 성능을 확인하였다.
+[SSDLite](https://github.com/won-seoop/CV/tree/feature/ssdlite)의 COCO pretrained 모델은 연필과 핸드폰에 대한 객체 탐지 성능이 좋지 않아, MobileNetV2를 해당 클래스에 맞게 파인튜닝하여 성능을 확인하였다.
+
 
 ---
 
